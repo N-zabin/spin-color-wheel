@@ -1,0 +1,527 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.wrapper{display:flex;gap:20px;padding:1.2rem 1rem;align-items:flex-start;flex-wrap:wrap;position:relative}
+.left{flex:1;min-width:260px;display:flex;flex-direction:column;align-items:center;gap:14px}
+.right{width:220px;min-width:200px}
+.name-row{display:flex;gap:8px;width:100%}
+.name-row input{flex:1}
+#spinBtn{padding:0 16px;height:36px;background:var(--color-background-info);color:var(--color-text-info);border:1px solid var(--color-border-info);border-radius:var(--border-radius-md);cursor:pointer;font-size:13px;font-weight:500;transition:opacity 0.2s}
+#spinBtn:disabled{opacity:0.4;cursor:not-allowed}
+.canvas-wrap{position:relative;width:260px;height:260px}
+.needle-wrap{position:absolute;top:-14px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;z-index:10;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.25))}
+.needle-head{width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#ff4e4e,#c0392b);border:2px solid #fff}
+.needle-body{width:0;height:0;border-left:9px solid transparent;border-right:9px solid transparent;border-top:32px solid #c0392b;margin-top:-2px}
+.result-badge{min-height:44px;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:var(--border-radius-lg);border:0.5px solid var(--color-border-tertiary);background:var(--color-background-secondary);padding:10px 14px;font-size:14px;font-weight:500;color:var(--color-text-primary);width:100%;text-align:center;transition:border-color 0.4s}
+.dot{width:16px;height:16px;border-radius:50%;flex-shrink:0}
+.list-title{font-size:12px;font-weight:500;color:var(--color-text-secondary);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+.result-list{display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto}
+.list-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-tertiary);background:var(--color-background-primary)}
+.list-item.new-item{animation:slideIn 0.4s ease}
+@keyframes slideIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.list-item .dot{width:12px;height:12px}
+.list-item .lname{font-size:12px;font-weight:500;color:var(--color-text-primary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.list-item .lcolor{font-size:11px;font-weight:500}
+.empty-state{font-size:12px;color:var(--color-text-tertiary);text-align:center;padding:16px 0}
+.pills-area{margin-bottom:10px}
+.pills-title{font-size:11px;color:var(--color-text-tertiary);margin-bottom:5px}
+.color-pills{display:flex;flex-wrap:wrap;gap:4px}
+.pill{font-size:11px;padding:2px 7px;border-radius:999px;font-weight:500;transition:opacity 0.3s}
+.pill.used{opacity:0.3;text-decoration:line-through}
+.admin-area{margin-top:10px}
+.admin-toggle{width:100%;font-size:11px;color:var(--color-text-tertiary);background:none;border:0.5px dashed var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:5px 8px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px}
+.admin-toggle:hover{background:var(--color-background-secondary)}
+.admin-panel{margin-top:8px;display:none;flex-direction:column;gap:8px;padding:10px;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);background:var(--color-background-secondary)}
+.admin-tabs{display:flex;gap:4px}
+.tab-btn{flex:1;font-size:11px;padding:4px 0;border-radius:var(--border-radius-md);cursor:pointer;border:0.5px solid var(--color-border-tertiary);background:none;color:var(--color-text-secondary)}
+.tab-btn.active{background:var(--color-background-info);color:var(--color-text-info);border-color:var(--color-border-info)}
+.tab-content{display:none}
+.tab-content.active{display:block}
+.color-editor{display:flex;flex-direction:column;gap:6px}
+.color-row{display:flex;align-items:center;gap:6px;padding:5px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-tertiary);background:var(--color-background-primary)}
+.color-row input[type=text]{flex:1;font-size:11px;height:28px}
+.color-row input[type=color]{width:28px;height:28px;padding:1px;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);cursor:pointer;background:none}
+.editor-save{width:100%;margin-top:4px;font-size:11px;padding:4px;border-radius:var(--border-radius-md);cursor:pointer;border:0.5px solid var(--color-border-info);background:var(--color-background-info);color:var(--color-text-info)}
+.admin-pw-gate{display:flex;flex-direction:column;gap:6px}
+.admin-pw-gate input{width:100%;font-size:12px}
+.admin-pw-gate button{font-size:11px;padding:4px;border-radius:var(--border-radius-md);cursor:pointer;border:0.5px solid var(--color-border-info);background:var(--color-background-info);color:var(--color-text-info)}
+.pw-err{font-size:11px;color:var(--color-text-danger);text-align:center;display:none;margin-top:4px}
+.sync-badge{font-size:10px;color:var(--color-text-tertiary);text-align:center;margin-top:6px;display:flex;align-items:center;justify-content:center;gap:4px}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:#4CAF50;display:inline-block}
+.sync-dot.syncing{background:#F5C842;animation:pulse 0.8s infinite}
+.sync-dot.err{background:#E24B4A}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+#confettiCanvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999}
+.pop-overlay{position:fixed;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;z-index:10000;pointer-events:none}
+.pop-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:28px 36px;text-align:center;pointer-events:none;transform:scale(0);opacity:0;transition:transform 0.45s cubic-bezier(0.175,0.885,0.32,1.275),opacity 0.3s;box-shadow:0 8px 32px rgba(0,0,0,0.12)}
+.pop-card.show{transform:scale(1);opacity:1}
+.pop-emoji{font-size:48px;margin-bottom:10px;display:block;animation:bounceEmoji 0.6s 0.4s ease both}
+@keyframes bounceEmoji{0%{transform:scale(0) rotate(-20deg)}60%{transform:scale(1.25) rotate(5deg)}100%{transform:scale(1) rotate(0)}}
+.pop-name{font-size:20px;font-weight:500;color:var(--color-text-primary);margin-bottom:4px}
+.pop-color-label{font-size:15px;font-weight:500;margin-top:2px}
+.pop-dot{width:32px;height:32px;border-radius:50%;margin:12px auto 0;border:2px solid rgba(0,0,0,0.08)}
+</style>
+
+<h2 style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">লটারি স্পিন হুইল — shared</h2>
+<canvas id="confettiCanvas"></canvas>
+<div class="pop-overlay">
+  <div class="pop-card" id="popCard">
+    <span class="pop-emoji" id="popEmoji">🎉</span>
+    <div class="pop-name" id="popName"></div>
+    <div class="pop-dot" id="popDot"></div>
+    <div class="pop-color-label" id="popColorLabel"></div>
+  </div>
+</div>
+
+<div class="wrapper">
+  <div class="left">
+    <div class="name-row">
+      <input type="text" id="nameInput" placeholder="তোমার নাম লেখো..." maxlength="30"/>
+      <button id="spinBtn"><i class="ti ti-rotate-clockwise" aria-hidden="true"></i> Spin</button>
+    </div>
+    <div class="canvas-wrap">
+      <div class="needle-wrap" id="needleWrap">
+        <div class="needle-head"></div>
+        <div class="needle-body"></div>
+      </div>
+      <canvas id="wheelCanvas" width="260" height="260"></canvas>
+    </div>
+    <div class="result-badge" id="resultBadge">
+      <span style="color:var(--color-text-tertiary);font-size:13px;font-weight:400">নাম দিয়ে Spin করো!</span>
+    </div>
+  </div>
+
+  <div class="right">
+    <div class="pills-area">
+      <div class="pills-title"><i class="ti ti-palette" aria-hidden="true" style="font-size:11px;margin-right:2px"></i>রঙের অবস্থা</div>
+      <div class="color-pills" id="colorPills"></div>
+    </div>
+    <div class="list-title">
+      <span><i class="ti ti-trophy" aria-hidden="true" style="font-size:13px;margin-right:3px"></i>ফলাফল তালিকা</span>
+      <span id="countBadge" style="font-size:11px;color:var(--color-text-tertiary)"></span>
+    </div>
+    <div class="result-list" id="resultList">
+      <div class="empty-state">লোড হচ্ছে...</div>
+    </div>
+    <div class="sync-badge">
+      <span class="sync-dot" id="syncDot"></span>
+      <span id="syncLbl">সংযুক্ত — সবাই একই data দেখছে</span>
+    </div>
+    <div class="admin-area">
+      <button class="admin-toggle" onclick="toggleAdmin()">
+        <i class="ti ti-settings" aria-hidden="true" style="font-size:12px"></i>
+        <span>Admin Panel</span>
+      </button>
+      <div class="admin-panel" id="adminPanel">
+        <div id="pwGate" class="admin-pw-gate">
+          <input type="password" id="pwGateInput" placeholder="Admin password..."/>
+          <button onclick="unlockAdmin()"><i class="ti ti-lock-open" aria-hidden="true"></i> Unlock</button>
+          <div class="pw-err" id="pwGateErr">❌ পাসওয়ার্ড ভুল!</div>
+        </div>
+        <div id="adminInner" style="display:none;flex-direction:column;gap:8px">
+          <div class="admin-tabs">
+            <button class="tab-btn active" onclick="switchTab('colors')"><i class="ti ti-palette" aria-hidden="true"></i> রঙ বদলাও</button>
+            <button class="tab-btn" onclick="switchTab('reset')"><i class="ti ti-trash" aria-hidden="true"></i> রিসেট</button>
+          </div>
+          <div class="tab-content active" id="tab-colors">
+            <div class="color-editor" id="colorEditor"></div>
+            <button class="editor-save" onclick="applyColorChanges()"><i class="ti ti-check" aria-hidden="true"></i> Save & Apply</button>
+          </div>
+          <div class="tab-content" id="tab-reset">
+            <div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:8px">সবার ফলাফল ও রঙের অবস্থা রিসেট হবে।</div>
+            <button onclick="doReset()" style="width:100%;padding:5px;font-size:11px;border-radius:var(--border-radius-md);cursor:pointer;background:var(--color-background-danger);color:var(--color-text-danger);border:0.5px solid var(--color-border-danger)"><i class="ti ti-trash" aria-hidden="true"></i> সব মুছে দাও</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const ADMIN_PASS = "admin123";
+const CHOCOLATE_INDEX = 4;
+const STORAGE_KEY = "lottery_shared_state";
+let adminUnlocked = false;
+
+const DEFAULT_COLORS = [
+  {name:"Red",    hex:"#E24B4A",text:"#fff",pillBg:"#FCEBEB",pillText:"#A32D2D"},
+  {name:"Blue",   hex:"#378ADD",text:"#fff",pillBg:"#E6F1FB",pillText:"#185FA5"},
+  {name:"Green",  hex:"#4CAF50",text:"#fff",pillBg:"#EAF3DE",pillText:"#3B6D11"},
+  {name:"Yellow", hex:"#F5C842",text:"#5a3e00",pillBg:"#FAEEDA",pillText:"#854F0B"},
+  {name:"Chocolate",hex:"#7B3F00",text:"#fff",pillBg:"#f5e6da",pillText:"#5a2d0c"},
+];
+
+let COLORS = DEFAULT_COLORS.map(c=>({...c}));
+let results = [];
+let usedIndexes = new Set();
+let usedNames = new Set();
+let spinning = false;
+let currentAngle = -Math.PI/2;
+let confettiParticles = [];
+let confettiAnim = null;
+let needleBobAnim = null;
+let pollTimer = null;
+
+const canvas = document.getElementById('wheelCanvas');
+const ctx = canvas.getContext('2d');
+const spinBtn = document.getElementById('spinBtn');
+const nameInput = document.getElementById('nameInput');
+const resultBadge = document.getElementById('resultBadge');
+const resultListEl = document.getElementById('resultList');
+const countBadge = document.getElementById('countBadge');
+const colorPills = document.getElementById('colorPills');
+const confettiCanvas = document.getElementById('confettiCanvas');
+const cctx = confettiCanvas.getContext('2d');
+const syncDot = document.getElementById('syncDot');
+const syncLbl = document.getElementById('syncLbl');
+
+function setSyncState(s){
+  syncDot.className='sync-dot'+(s==='syncing'?' syncing':s==='err'?' err':'');
+  syncLbl.textContent=s==='syncing'?'সেভ হচ্ছে...':s==='err'?'সংযোগ সমস্যা':'সংযুক্ত — সবাই একই data দেখছে';
+}
+
+async function loadShared(){
+  try{
+    const res = await window.storage.get(STORAGE_KEY, true);
+    if(res && res.value){
+      const d = JSON.parse(res.value);
+      applyState(d);
+    }
+    setSyncState('ok');
+  } catch(e){ setSyncState('err'); }
+}
+
+async function saveShared(){
+  setSyncState('syncing');
+  try{
+    await window.storage.set(STORAGE_KEY, JSON.stringify({
+      results,
+      usedIndexes: Array.from(usedIndexes),
+      usedNames: Array.from(usedNames),
+      colors: COLORS
+    }), true);
+    setSyncState('ok');
+  } catch(e){ setSyncState('err'); }
+}
+
+function applyState(d){
+  if(d.colors) COLORS = d.colors;
+  results = d.results || [];
+  usedIndexes = new Set(d.usedIndexes || []);
+  usedNames = new Set(d.usedNames || []);
+  drawWheel(currentAngle);
+  renderPills();
+  renderList();
+  if(results.length>0){
+    const last=results[0];
+    const dc=last.color.hex==='#F5C842'?'#a07000':last.color.hex;
+    resultBadge.style.borderColor=last.color.hex;
+    resultBadge.innerHTML=`<div class="dot" style="background:${last.color.hex};border:1px solid rgba(0,0,0,0.1)"></div><span><strong>${last.name}</strong> পেয়েছে <strong style="color:${dc}">${last.color.name}</strong>!</span>`;
+  }
+  if(getAvailable().length===0){
+    spinBtn.disabled=true; nameInput.disabled=true; nameInput.placeholder='সব রঙ শেষ!';
+  } else {
+    spinBtn.disabled=false; nameInput.disabled=false; nameInput.placeholder='তোমার নাম লেখো...';
+  }
+  if(adminUnlocked) buildColorEditor();
+}
+
+function startPolling(){
+  pollTimer = setInterval(async()=>{
+    if(!spinning){
+      try{
+        const res = await window.storage.get(STORAGE_KEY, true);
+        if(res && res.value){
+          const d = JSON.parse(res.value);
+          const remoteNames = new Set(d.usedNames||[]);
+          const same = remoteNames.size===usedNames.size && [...remoteNames].every(n=>usedNames.has(n));
+          if(!same) applyState(d);
+        }
+      } catch(e){}
+    }
+  }, 4000);
+}
+
+function getAvailable(){ return COLORS.map((_,i)=>i).filter(i=>!usedIndexes.has(i)); }
+
+function renderPills(){
+  colorPills.innerHTML = COLORS.map((c,i)=>{
+    const used = usedIndexes.has(i);
+    return `<span class="pill${used?' used':''}" style="background:${c.pillBg};color:${c.pillText}">${c.name}</span>`;
+  }).join('');
+}
+
+const cx=130, cy=130, r=120;
+
+function drawWheel(angle){
+  ctx.clearRect(0,0,260,260);
+  const sliceAngle=(2*Math.PI)/COLORS.length;
+  COLORS.forEach((c,i)=>{
+    const start=angle+i*sliceAngle, end=start+sliceAngle;
+    const isUsed=usedIndexes.has(i);
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,r,start,end); ctx.closePath();
+    ctx.fillStyle=isUsed?'#d0d0d0':c.hex; ctx.fill();
+    ctx.strokeStyle='#fff'; ctx.lineWidth=3; ctx.stroke();
+    const mid=start+sliceAngle/2;
+    const lx=cx+Math.cos(mid)*r*0.68, ly=cy+Math.sin(mid)*r*0.68;
+    ctx.save(); ctx.translate(lx,ly); ctx.rotate(mid+Math.PI/2);
+    ctx.textAlign='center'; ctx.fillStyle=isUsed?'#aaa':c.text;
+    ctx.font=`${isUsed?'400':'700'} 12px sans-serif`;
+    ctx.fillText(isUsed?'✓':c.name, 0, 0); ctx.restore();
+  });
+  ctx.beginPath(); ctx.arc(cx,cy,r,0,2*Math.PI);
+  ctx.strokeStyle='rgba(0,0,0,0.1)'; ctx.lineWidth=4; ctx.stroke();
+  const g=ctx.createRadialGradient(cx,cy,14,cx,cy,22);
+  g.addColorStop(0,'#fff'); g.addColorStop(1,'#eee');
+  ctx.beginPath(); ctx.arc(cx,cy,22,0,2*Math.PI);
+  ctx.fillStyle=g; ctx.fill();
+  ctx.strokeStyle='rgba(0,0,0,0.12)'; ctx.lineWidth=1.5; ctx.stroke();
+  ctx.fillStyle='#bbb'; ctx.font='bold 15px sans-serif';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('✦',cx,cy); ctx.textBaseline='alphabetic';
+}
+
+function easeOut(t){ return 1-Math.pow(1-t,4); }
+
+function startNeedleBob(){
+  stopNeedleBob(); let t=0;
+  const wrap=document.getElementById('needleWrap');
+  function f(){ t+=0.08; wrap.style.transform=`translateX(-50%) translateY(${Math.sin(t)*4}px)`; needleBobAnim=requestAnimationFrame(f); }
+  needleBobAnim=requestAnimationFrame(f);
+}
+function stopNeedleBob(){
+  if(needleBobAnim){ cancelAnimationFrame(needleBobAnim); needleBobAnim=null; }
+  document.getElementById('needleWrap').style.transform='translateX(-50%)';
+}
+
+function playSound(type){
+  try{
+    const ac=new(window.AudioContext||window.webkitAudioContext)();
+    if(type==='spin'){
+      for(let i=0;i<8;i++){
+        const o=ac.createOscillator(),g=ac.createGain();
+        o.connect(g); g.connect(ac.destination);
+        o.frequency.setValueAtTime(300+i*80,ac.currentTime+i*0.12);
+        o.frequency.exponentialRampToValueAtTime(200+i*60,ac.currentTime+i*0.12+0.1);
+        g.gain.setValueAtTime(0.12,ac.currentTime+i*0.12);
+        g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+i*0.12+0.1);
+        o.start(ac.currentTime+i*0.12); o.stop(ac.currentTime+i*0.12+0.12);
+      }
+    } else if(type==='tick'){
+      const o=ac.createOscillator(),g=ac.createGain();
+      o.connect(g); g.connect(ac.destination);
+      o.frequency.value=600; o.type='triangle';
+      g.gain.setValueAtTime(0.08,ac.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+0.05);
+      o.start(ac.currentTime); o.stop(ac.currentTime+0.06);
+    } else if(type==='win'){
+      [523,659,784,1047].forEach((freq,i)=>{
+        const o=ac.createOscillator(),g=ac.createGain();
+        o.connect(g); g.connect(ac.destination);
+        o.frequency.value=freq; o.type='sine';
+        g.gain.setValueAtTime(0,ac.currentTime+i*0.12);
+        g.gain.linearRampToValueAtTime(0.18,ac.currentTime+i*0.12+0.05);
+        g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+i*0.12+0.35);
+        o.start(ac.currentTime+i*0.12); o.stop(ac.currentTime+i*0.12+0.4);
+      });
+    }
+  } catch(e){}
+}
+
+function launchConfetti(colorHex){
+  confettiCanvas.width=window.innerWidth; confettiCanvas.height=window.innerHeight;
+  confettiParticles=[];
+  const cols=[colorHex,'#FFD700','#FF6B6B','#4ECDC4','#45B7D1','#96CEB4','#FFEAA7','#DDA0DD'];
+  for(let i=0;i<120;i++){
+    confettiParticles.push({
+      x:Math.random()*confettiCanvas.width, y:-10-Math.random()*100,
+      vx:(Math.random()-0.5)*4, vy:2+Math.random()*4,
+      rot:Math.random()*360, rotV:(Math.random()-0.5)*8,
+      w:6+Math.random()*8, h:4+Math.random()*6,
+      color:cols[Math.floor(Math.random()*cols.length)],
+      alpha:1, life:1
+    });
+  }
+  if(confettiAnim) cancelAnimationFrame(confettiAnim);
+  animateConfetti();
+}
+
+function animateConfetti(){
+  cctx.clearRect(0,0,confettiCanvas.width,confettiCanvas.height);
+  let alive=false;
+  confettiParticles.forEach(p=>{
+    p.x+=p.vx; p.y+=p.vy; p.vy+=0.08; p.rot+=p.rotV;
+    p.life-=0.008; p.alpha=Math.max(0,p.life);
+    if(p.y<confettiCanvas.height+20&&p.life>0) alive=true;
+    cctx.save(); cctx.translate(p.x,p.y); cctx.rotate(p.rot*Math.PI/180);
+    cctx.globalAlpha=p.alpha; cctx.fillStyle=p.color;
+    cctx.fillRect(-p.w/2,-p.h/2,p.w,p.h); cctx.restore();
+  });
+  if(alive) confettiAnim=requestAnimationFrame(animateConfetti);
+  else cctx.clearRect(0,0,confettiCanvas.width,confettiCanvas.height);
+}
+
+function showPopCard(name,color){
+  const card=document.getElementById('popCard');
+  document.getElementById('popEmoji').textContent=name.toLowerCase()==='maria'?'🍫':'🎉';
+  document.getElementById('popName').textContent=name+' পেয়েছে!';
+  document.getElementById('popDot').style.background=color.hex;
+  document.getElementById('popColorLabel').textContent=color.name;
+  document.getElementById('popColorLabel').style.color=color.hex==='#F5C842'?'#a07000':color.hex;
+  card.classList.add('show');
+  setTimeout(()=>card.classList.remove('show'),2800);
+}
+
+function spinWheel(name){
+  if(spinning) return;
+  const available=getAvailable();
+  if(available.length===0){
+    resultBadge.innerHTML='<span style="color:var(--color-text-danger);font-size:13px;">🚫 সব রঙ শেষ!</span>'; return;
+  }
+  spinning=true; spinBtn.disabled=true;
+  resultBadge.innerHTML='<span style="color:var(--color-text-tertiary);font-size:13px;">ঘুরছে...</span>';
+  playSound('spin');
+
+  const isMaria=name.trim().toLowerCase()==='maria';
+  const winIndex=isMaria&&!usedIndexes.has(CHOCOLATE_INDEX)?CHOCOLATE_INDEX:available[Math.floor(Math.random()*available.length)];
+
+  const sliceAngle=(2*Math.PI)/COLORS.length;
+  const extraSpins=(7+Math.floor(Math.random()*3))*2*Math.PI;
+  const targetMid=winIndex*sliceAngle+sliceAngle/2;
+  let finalAngle=-Math.PI/2-targetMid;
+  while(finalAngle<=currentAngle+extraSpins-2*Math.PI) finalAngle+=2*Math.PI;
+  while(finalAngle>currentAngle+extraSpins+2*Math.PI) finalAngle-=2*Math.PI;
+  if(finalAngle<currentAngle+extraSpins) finalAngle+=2*Math.PI;
+
+  const totalDelta=finalAngle-currentAngle, duration=4000;
+  const startAngle=currentAngle, startTime=performance.now();
+  let lastTickAngle=currentAngle;
+
+  function animate(now){
+    const t=Math.min((now-startTime)/duration,1);
+    const et=easeOut(t);
+    currentAngle=startAngle+et*totalDelta;
+    drawWheel(currentAngle);
+    const tickInterval=sliceAngle*(0.15+0.85*(1-et));
+    if(Math.abs(currentAngle-lastTickAngle)>=tickInterval){ playSound('tick'); lastTickAngle=currentAngle; }
+    if(t<1){ requestAnimationFrame(animate); }
+    else{
+      currentAngle=finalAngle;
+      usedIndexes.add(winIndex); usedNames.add(name.toLowerCase());
+      results.unshift({name, color:COLORS[winIndex]});
+      drawWheel(currentAngle); spinning=false; spinBtn.disabled=false;
+      playSound('win'); launchConfetti(COLORS[winIndex].hex);
+      showResultBadge(name,COLORS[winIndex]);
+      renderList(); renderPills(); showPopCard(name,COLORS[winIndex]);
+      saveShared();
+      startNeedleBob(); setTimeout(stopNeedleBob,2000);
+      if(getAvailable().length===0){
+        spinBtn.disabled=true; nameInput.disabled=true; nameInput.placeholder='সব রঙ শেষ!';
+      }
+    }
+  }
+  requestAnimationFrame(animate);
+}
+
+function showResultBadge(name,color){
+  const dc=color.hex==='#F5C842'?'#a07000':color.hex;
+  resultBadge.style.borderColor=color.hex;
+  resultBadge.innerHTML=`<div class="dot" style="background:${color.hex};border:1px solid rgba(0,0,0,0.1)"></div><span><strong>${name}</strong> পেয়েছে <strong style="color:${dc}">${color.name}</strong>!</span>`;
+}
+
+function renderList(){
+  countBadge.textContent=results.length>0?results.length+' জন':'';
+  if(results.length===0){ resultListEl.innerHTML='<div class="empty-state">এখনো কেউ spin করেনি</div>'; return; }
+  resultListEl.innerHTML=results.map((r,idx)=>{
+    const dc=r.color.hex==='#F5C842'?'#a07000':r.color.hex;
+    return `<div class="list-item${idx===0?' new-item':''}">
+      <div class="dot" style="background:${r.color.hex};border:1px solid rgba(0,0,0,0.1)"></div>
+      <span class="lname">${r.name}</span>
+      <span class="lcolor" style="color:${dc}">${r.color.name}</span>
+    </div>`;
+  }).join('');
+}
+
+function toggleAdmin(){
+  const p=document.getElementById('adminPanel');
+  const open=p.style.display==='flex';
+  p.style.display=open?'none':'flex';
+  if(!open&&!adminUnlocked) setTimeout(()=>document.getElementById('pwGateInput').focus(),50);
+}
+
+function unlockAdmin(){
+  const v=document.getElementById('pwGateInput').value;
+  const err=document.getElementById('pwGateErr');
+  if(v===ADMIN_PASS){
+    adminUnlocked=true;
+    document.getElementById('pwGate').style.display='none';
+    document.getElementById('adminInner').style.display='flex';
+    buildColorEditor();
+  } else {
+    err.style.display='block';
+    document.getElementById('pwGateInput').value='';
+    setTimeout(()=>{ err.style.display='none'; },2500);
+  }
+}
+
+function switchTab(name){
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',['colors','reset'][i]===name));
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+}
+
+function buildColorEditor(){
+  document.getElementById('colorEditor').innerHTML=COLORS.map((c,i)=>`
+    <div class="color-row">
+      <input type="color" value="${c.hex}" id="ceHex${i}"/>
+      <input type="text" value="${c.name}" id="ceName${i}" placeholder="নাম..." maxlength="14"/>
+    </div>`).join('');
+}
+
+function applyColorChanges(){
+  COLORS.forEach((c,i)=>{
+    const h=document.getElementById('ceHex'+i).value;
+    const n=document.getElementById('ceName'+i).value.trim()||c.name;
+    const rv=parseInt(h.slice(1,3),16), gv=parseInt(h.slice(3,5),16), bv=parseInt(h.slice(5,7),16);
+    const br=(rv*299+gv*587+bv*114)/1000;
+    c.hex=h; c.name=n; c.text=br>150?'#333':'#fff';
+    c.pillBg=`rgb(${Math.min(255,rv*0.18+230|0)},${Math.min(255,gv*0.18+230|0)},${Math.min(255,bv*0.18+230|0)})`;
+    c.pillText=`rgb(${rv*0.45|0},${gv*0.45|0},${bv*0.45|0})`;
+  });
+  drawWheel(currentAngle); renderPills(); renderList(); saveShared();
+  const btn=document.querySelector('.editor-save');
+  btn.innerHTML='<i class="ti ti-check" aria-hidden="true"></i> Saved!';
+  setTimeout(()=>{ btn.innerHTML='<i class="ti ti-check" aria-hidden="true"></i> Save & Apply'; },1500);
+}
+
+async function doReset(){
+  results=[]; usedIndexes=new Set(); usedNames=new Set();
+  COLORS=DEFAULT_COLORS.map(c=>({...c}));
+  try{ await window.storage.delete(STORAGE_KEY, true); } catch(e){}
+  renderList(); renderPills(); drawWheel(currentAngle);
+  resultBadge.style.borderColor='';
+  resultBadge.innerHTML='<span style="color:var(--color-text-tertiary);font-size:13px;font-weight:400">নাম দিয়ে Spin করো!</span>';
+  spinBtn.disabled=false; nameInput.disabled=false; nameInput.placeholder='তোমার নাম লেখো...';
+  setSyncState('ok');
+  if(adminUnlocked) buildColorEditor();
+}
+
+spinBtn.addEventListener('click',()=>{
+  const name=nameInput.value.trim();
+  if(!name){ nameInput.focus(); return; }
+  if(usedNames.has(name.toLowerCase())){
+    resultBadge.innerHTML=`<span style="color:var(--color-text-danger);font-size:13px;">⚠️ <strong>${name}</strong> আগেই spin করেছে!</span>`;
+    nameInput.value=''; nameInput.focus(); return;
+  }
+  if(getAvailable().length===0){
+    resultBadge.innerHTML='<span style="color:var(--color-text-danger);font-size:13px;">🚫 সব রঙ শেষ!</span>'; return;
+  }
+  spinWheel(name); nameInput.value=''; nameInput.focus();
+});
+
+nameInput.addEventListener('keydown',e=>{ if(e.key==='Enter') spinBtn.click(); });
+document.getElementById('pwGateInput').addEventListener('keydown',e=>{ if(e.key==='Enter') unlockAdmin(); });
+
+drawWheel(currentAngle);
+loadShared().then(()=>startPolling());
+</script>
